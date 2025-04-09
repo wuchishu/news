@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Google 新聞爬蟲教學</title>
+    <style>
+        :root {
+            --primary-color: #4285f4; /* Google 藍 */
+            --secondary-color: #34a853; /* Google 綠 */
+            --accent-color: #ea4335; /* Google 紅 */
+            --light-color: #f8f9fa;
+            --dark-color: #202124;
+            --code-bg: #f5f5f5;
+            --gray-color: #5f6368;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Noto Sans TC', '微軟正黑體', sans-serif;
+            line-height: 1.6;
+            color: var(--dark-color);
+            background-color: var(--light-color);
+            padding-top: 60px; /* 為固定導航欄留出空間 */
+        }
+        
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            height: 60px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: var(--dark-color);
+            font-weight: bold;
+        }
+        
+        .logo img {
+            height: 40px;
+            margin-right: 10px;
+        }
+        
+        .nav-links {
+            list-style: none;
+            display: flex;
+        }
+        
+        .nav-links li {
+            margin-left: 20px;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: var(--gray-color);
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: var(--primary-color);
+        }
+        
+        .nav-links a.active {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 60px 20px;
+            background: linear-gradient(135deg, var(--primary-color), #8ab4f8);
+            color: white;
+            margin-bottom: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+        
+        header p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .btn {
+            display: inline-block;
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #2d9348;
+        }
+        
+        h2 {
+            font-size: 2rem;
+            margin: 50px 0 20px;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+        }
+        
+        h3 {
+            font-size: 1.5rem;
+            margin: 30px 0 15px;
+            color: var(--dark-color);
+        }
+        
+        h4 {
+            font-size: 1.2rem;
+            margin: 20px 0 10px;
+            color: var(--gray-color);
+        }
+        
+        p {
+            margin-bottom: 20px;
+        }
+        
+        a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        code {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background-color: var(--code-bg);
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        
+        pre {
+            background-color: var(--code-bg);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            line-height: 1.4;
+            margin: 20px 0;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .alert-info {
+            background-color: #e8f0fe;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .alert-warning {
+            background-color: #fef7e0;
+            border-left: 4px solid #fbbc04;
+        }
+        
+        .alert-success {
+            background-color: #e6f4ea;
+            border-left: 4px solid var(--secondary-color);
+        }
+        
+        .steps {
+            counter-reset: step;
+            list-style-type: none;
+            margin: 20px 0;
+        }
+        
+        .steps li {
+            position: relative;
+            padding-left: 35px;
+            margin-bottom: 20px;
+        }
+        
+        .steps li:before {
+            content: counter(step);
+            counter-increment: step;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .card-title {
+            color: var(--primary-color);
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        table th {
+            background-color: #f1f3f4;
+            font-weight: bold;
+            color: var(--dark-color);
+        }
+        
+        table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .code-explanation {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .code-block {
+            flex: 1;
+            min-width: 300px;
+            max-width: 100%;
+            padding: 20px;
+            background-color: var(--code-bg);
+            border-right: 1px solid #ddd;
+        }
+        
+        .explanation {
+            flex: 1;
+            min-width: 300px;
+            padding: 20px;
+            background-color: white;
+        }
+        
+        .screenshot {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .flex-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .flex-item {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        footer {
+            background-color: var(--dark-color);
+            color: white;
+            text-align: center;
+            padding: 30px 0;
+            margin-top: 50px;
+        }
+        
+        footer p {
+            margin: 5px 0;
+        }
+        
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: var(--gray-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .copy-btn:hover {
+            background-color: var(--primary-color);
+        }
+        
+        .code-container {
+            position: relative;
+        }
+        
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 0 10px;
+            }
+            
+            .logo span {
+                display: none;
+            }
+            
+            .nav-links li {
+                margin-left: 10px;
+            }
+            
+            header {
+                padding: 40px 15px;
+            }
+            
+            header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            h2 {
+                font-size: 1.7rem;
+            }
+            
+            h3 {
+                font-size: 1.3rem;
+            }
+            
+            .code-block, .explanation {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="#" class="logo">
+            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHBhdGggZmlsbD0iIzQyODVGNCIgZD0iTTYgNmgyMHYyMEg2eiIvPjxwYXRoIGZpbGw9IiMzNEE4NTMiIGQ9Ik0zMiA2aDEwdjEwSDMyeiIvPjxwYXRoIGZpbGw9IiNGQkJDMDQiIGQ9Ik0zMiAyMmgxMHYyMEgzMnoiLz48cGF0aCBmaWxsPSIjRUE0MzM1IiBkPSJNNiAzMmgxMHYxMEg2eiIvPjxwYXRoIGZpbGw9IiNDNTIyMUYiIGQ9Ik0yMiAzMmgxMHYxMEgyMnoiLz48L3N2Zz4=" alt="Logo">
+            <span>Python 爬蟲教學</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="#intro" class="active">介紹</a></li>
+            <li><a href="#prerequisites">準備工作</a></li>
+            <li><a href="#code">程式碼</a></li>
+            <li><a href="#tutorial">教學</a></li>
+            <li><a href="#advanced">進階技巧</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1>Python Google 新聞爬蟲教學</h1>
+            <p>學習如何使用 Python、BeautifulSoup 和 Gradio 建立一個簡單但功能強大的 Google 新聞爬蟲應用</p>
+            <a href="#code" class="btn">查看完整程式碼</a>
+        </header>
+
+        <section id="intro">
+            <h2>介紹</h2>
+            <p>這個專案將教你如何使用 Python 開發一個 Google 新聞爬蟲工具，它可以：</p>
+            <ul>
+                <li>根據關鍵字搜尋 Google 新聞</li>
+                <li>提取新聞標題、來源、摘要和連結</li>
+                <li>生成文字雲視覺化</li>
+                <li>將結果保存為 Markdown 和 CSV 格式</li>
+                <li>透過 Gradio 界面讓使用者輕鬆操作</li>
+            </ul>
+            
+            <div class="alert alert-info">
+                <p><strong>💡 學習重點</strong></p>
+                <p>通過這個專案，你將學到：</p>
+                <ul>
+                    <li>如何使用 requests 發送 HTTP 請求</li>
+                    <li>如何使用 BeautifulSoup 解析 HTML</li>
+                    <li>如何使用 WordCloud 生成文字雲</li>
+                    <li>如何使用 Gradio 創建簡單的網頁界面</li>
+                    <li>如何處理爬蟲過程中的常見錯誤</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="prerequisites">
+            <h2>準備工作</h2>
+            
+            <h3>所需工具</h3>
+            <ul>
+                <li>Python 3.7 或更高版本</li>
+                <li>文字編輯器或 IDE（推薦使用 Visual Studio Code、PyCharm）</li>
+            </ul>
+            
+            <h3>安裝必要的套件</h3>
+            <p>在開始之前，你需要安裝以下 Python 套件：</p>
+            <div class="code-container">
+                <button class="copy-btn" onclick="copyCode('pip-code')">複製</button>
+                <pre><code id="pip-code">pip install requests beautifulsoup4 wordcloud matplotlib gradio</code></pre>
+            </div>
+            
+            <div class="card">
+                <h3 class="card-title">套件說明</h3>
+                <table>
+                    <tr>
+                        <th>套件名稱</th>
+                        <th>用途</th>
+                    </tr>
+                    <tr>
+                        <td>requests</td>
+                        <td>用於發送 HTTP 請求，獲取網頁內容</td>
+                    </tr>
+                    <tr>
+                        <td>beautifulsoup4</td>
+                        <td>用於解析 HTML 並提取所需資訊</td>
+                    </tr>
+                    <tr>
+                        <td>wordcloud</td>
+                        <td>用於生成文字雲視覺化</td>
+                    </tr>
+                    <tr>
+                        <td>matplotlib</td>
+                        <td>用於繪圖，wordcloud 依賴此套件</td>
+                    </tr>
+                    <tr>
+                        <td>gradio</td>
+                        <td>用於創建簡單的 Web 界面</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="alert alert-warning">
+                <p><strong>⚠️ 注意</strong></p>
+                <p>如果使用繁體中文生成文字雲，您需要安裝適當的字體文件。在 Windows 系統中，可以使用微軟正黑體 (msjh.ttc)，該字體文件通常已預裝在系統中。</p>
+            </div>
+        </section>
+
+        <section id="code">
+            <h2>完整程式碼</h2>
+            <p>以下是 Google 新聞爬蟲的完整程式碼：</p>
+            <div class="code-container">
+                <button class="copy-btn" onclick="copyCode('full-code')">複製</button>
+                <pre><code id="full-code">import os
+import csv
+from pathlib import Path
+from datetime import datetime
+from urllib.parse import quote_plus
+from collections import Counter
+from bs4 import BeautifulSoup
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+import gradio as gr
+import traceback
+import requests
+
+
+def generate_wordcloud(text, output_path):
+    """生成文字雲圖片"""
+    try:
+        wc = WordCloud(
+            font_path="msjh.ttc", width=800, height=400, background_color="white"
+        ).generate(text)
+        wc.to_file(output_path)
+        return True
+    except Exception as e:
+        print(f"生成文字雲時發生錯誤: {e}")
+        # 嘗試使用系統預設字體
+        try:
+            wc = WordCloud(
+                width=800, height=400, background_color="white"
+            ).generate(text)
+            wc.to_file(output_path)
+            return True
+        except Exception as e2:
+            print(f"使用預設字體生成文字雲時發生錯誤: {e2}")
+            return False
+
+
+def extract_top_sources(articles, top_n=5):
+    """提取最常見的新聞來源"""
+    sources = [a["來源"] for a in articles if a["來源"]]
+    return Counter(sources).most_common(top_n)
+
+
+def crawl_google_news_with_requests(keyword="台灣 Google 新聞", pages=3):
+    """使用 requests 和 BeautifulSoup 抓取 Google 新聞"""
+    
+    # 準備結果目錄和檔案
+    script_dir = Path(__file__).parent
+    result_dir = script_dir / "news_results"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    md_path = result_dir / f"google_news_{timestamp}.md"
+    csv_path = result_dir / f"google_news_{timestamp}.csv"
+    wordcloud_path = result_dir / f"google_news_{timestamp}_wordcloud.png"
+    
+    # 保存所有文章
+    all_articles = []
+    encoded_query = quote_plus(keyword)
+    
+    # 設定 requests 的 headers (模擬瀏覽器)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Referer": "https://www.google.com/"
+    }
+    
+    session = requests.Session()
+    session.headers.update(headers)
+    
+    # 抓取每一頁
+    for page in range(pages):
+        try:
+            start = page * 10
+            url = f"https://www.google.com/search?q={encoded_query}&tbm=nws&start={start}"
+            
+            response = session.get(url, timeout=10)
+            response.raise_for_status()  # 確保請求成功
+            
+            html_content = response.text
+            
+            # 只保存第一頁作為參考
+            if page == 0:
+                with open(result_dir / "raw_page_1.html", "w", encoding="utf-8") as f:
+                    f.write(html_content)
+            
+            # 使用 BeautifulSoup 解析 HTML
+            soup = BeautifulSoup(html_content, "html.parser")
+            
+            # 提取每個新聞項目
+            for item in soup.select("div.SoaBEf"):
+                try:
+                    a_tag = item.find("a", href=True)
+                    title_tag = item.find("div", role="heading")
+                    source_tag = item.find("div", class_="MgUUmf")
+                    snippet_tag = item.find("div", class_="GI74Re")
+                    time_tag = item.find("span", class_="OSrXXb")
+                    
+                    title = title_tag.get_text(strip=True) if title_tag else ""
+                    link = a_tag["href"] if a_tag else ""
+                    source = source_tag.get_text(strip=True) if source_tag else ""
+                    snippet = snippet_tag.get_text(strip=True) if snippet_tag else ""
+                    pub_time = time_tag.get_text(strip=True) if time_tag else ""
+                    
+                    all_articles.append({
+                        "標題": title,
+                        "來源": source,
+                        "時間": pub_time,
+                        "摘要": snippet,
+                        "連結": link,
+                    })
+                except Exception as e:
+                    print(f"提取單則新聞時發生錯誤: {e}")
+                    continue
+                    
+        except Exception as e:
+            print(f"抓取第 {page+1} 頁時發生錯誤: {e}")
+            continue
+    
+    # 如果沒抓到任何資料，提前返回錯誤
+    if not all_articles:
+        return f"❌ 未能抓取任何新聞，請檢查網路連接或嘗試其他關鍵字", None
+    
+    # 輸出 Markdown
+    try:
+        with open(md_path, "w", encoding="utf-8") as f:
+            f.write(f"# Google 新聞搜尋結果：{keyword}\n\n")
+            for i, article in enumerate(all_articles, 1):
+                f.write(f"{i}. **{article['標題']}**\n")
+                f.write(f"   - 📰 來源：{article['來源']}\n")
+                if article['時間']:
+                    f.write(f"   - 🕒 時間：{article['時間']}\n")
+                f.write(f"   - 📌 摘要：{article['摘要']}\n")
+                f.write(f"   - 🔗 [閱讀全文]({article['連結']})\n\n")
+    except Exception as e:
+        print(f"寫入 Markdown 檔案時發生錯誤: {e}")
+    
+    # 輸出 CSV
+    try:
+        with open(csv_path, "w", newline="", encoding="utf-8-sig") as csvfile:
+            writer = csv.DictWriter(
+                csvfile, fieldnames=["標題", "來源", "時間", "摘要", "連結"]
+            )
+            writer.writeheader()
+            writer.writerows(all_articles)
+    except Exception as e:
+        print(f"寫入 CSV 檔案時發生錯誤: {e}")
+    
+    # 製作文字雲
+    try:
+        text_for_wc = " ".join([a["標題"] + " " + a["摘要"] for a in all_articles])
+        wordcloud_success = generate_wordcloud(text_for_wc, wordcloud_path)
+    except Exception as e:
+        print(f"製作文字雲時發生錯誤: {e}")
+        wordcloud_success = False
+    
+    # 熱門來源分析
+    top_sources = extract_top_sources(all_articles)
+    
+    # 回傳顯示用內容
+    result_text = f"# ✅ 共擷取 {len(all_articles)} 則新聞\n"
+    for i, article in enumerate(all_articles, 1):
+        result_text += f"\n{i}. **{article['標題']}**\n"
+        result_text += f"   - 📰 來源：{article['來源']}\n"
+        if article['時間']:
+            result_text += f"   - 🕒 時間：{article['時間']}\n"
+        result_text += f"   - 📌 摘要：{article['摘要']}\n"
+        result_text += f"   - 🔗 {article['連結']}\n"
+    
+    result_text += "\n\n📊 熱門來源：\n"
+    for src, count in top_sources:
+        result_text += f"- {src}: {count} 則\n"
+    
+    result_text += f"\n📁 檔案儲存位置：\n📄 Markdown：{md_path}\n📊 CSV：{csv_path}"
+    if wordcloud_success:
+        result_text += f"\n🌥️ 文字雲：{wordcloud_path}"
+    
+    return result_text, str(wordcloud_path) if wordcloud_success else None
+
+
+def run_gradio_interface():
+    def search_news(keyword):
+        try:
+            # 使用 requests 版的爬蟲函數
+            return crawl_google_news_with_requests(keyword=keyword, pages=3)
+        except Exception as e:
+            error_message = f"❌ 發生錯誤：\n{str(e)}\n\n{traceback.format_exc()}"
+            print(error_message)  # 在控制台顯示完整錯誤
+            return error_message, None
+
+    with gr.Blocks(title="Google 新聞爬蟲介面") as demo:
+        gr.Markdown(
+            """# 📰 Google 新聞搜尋爬蟲\n請輸入你想查詢的新聞主題（例如：ChatGPT、台灣科技、生成式AI）"""
+        )
+        keyword_input = gr.Textbox(
+            label="搜尋關鍵字", placeholder="台灣 Google 新聞", value="台灣 Google 新聞"
+        )
+        submit_btn = gr.Button("開始搜尋")
+        output_text = gr.Textbox(
+            label="執行結果 (含搜尋結果與檔案路徑)", lines=30, show_copy_button=True
+        )
+        image_output = gr.Image(label="🔍 文字雲分析")
+
+        submit_btn.click(
+            fn=search_news, inputs=[keyword_input], outputs=[output_text, image_output]
+        )
+
+    # 啟用佇列模式，有助於防止多次點擊導致的並發問題
+    demo.queue()
+    demo.launch(share=False)
+
+
+if __name__ == "__main__":
+    run_gradio_interface()</code></pre>
+            </div>
+            
+            <div class="alert alert-success">
+                <p><strong>👍 提示</strong></p>
+                <p>你可以將上述程式碼保存為 <code>google_news_scraper.py</code>，然後通過命令行運行它：</p>
+                <pre><code>python google_news_scraper.py</code></pre>
+            </div>
+        </section>
+
+        <section id="tutorial">
+            <h2>詳細教學</h2>
+            
+            <h3>1. 程式結構和工作原理</h3>
+            <p>這個程式主要分為幾個部分：</p>
+            <ul>
+                <li>爬蟲核心功能（獲取和解析 Google 新聞）</li>
+                <li>文字雲生成</li>
+                <li>結果保存（Markdown 和 CSV）</li>
+                <li>Gradio 圖形界面</li>
+            </ul>
+            
+            <h3>2. 核心爬蟲功能</h3>
+            <p>我們使用 requests 和 BeautifulSoup 來獲取和解析 Google 新聞內容。</p>
+            
+            <div class="code-explanation">
+                <div class="code-block">
+<pre><code>def crawl_google_news_with_requests(keyword="台灣 Google 新聞", pages=3):
+    # 保存所有文章
+    all_articles = []
+    encoded_query = quote_plus(keyword)
+    
+    # 設定 headers (模擬瀏覽器)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537
